@@ -1,5 +1,5 @@
 from logging import raiseExceptions
-from data import *
+from data import botVoiceClients
 
 #get all channels from Sus Amongus
 def getSusChannels (client):
@@ -19,3 +19,19 @@ def getSusBotChannel(client):
         if channel.name == "bot":
             return channel
     raise RuntimeError("No channel from Sus Amongus called bot")
+
+def checkVcCommand(ctx):
+    #check if user is in vc
+    if not ctx.author.voice:
+        return "userNotInVc"
+    #check if bot is in vc in current server
+    try:
+         botVoiceClients[ctx.guild.id]
+    #bot is not in vc of this server
+    except KeyError:
+        return "botNotInServer"
+    #bot is not in the same channel of the user
+    if ctx.author.voice.channel.id != botVoiceClients[ctx.guild.id].channel.id:
+        return "botNotInChannel"
+    return "sameServerAndChannel"
+    
