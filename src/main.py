@@ -1,8 +1,6 @@
-from aiohttp import ClientError
+from helpers import *
 from discord.ext import commands
-from functions import *
 from data import botVoiceClients
-import youtube_dl
 
 #client = discord.Client()
 client = commands.Bot(command_prefix='!')
@@ -11,29 +9,7 @@ with open("key.txt",'r') as keyFile:
     TOKEN = keyFile.readline()
 keyFile.close()
 
-#===============================================================================================
-youtube_dl.utils.bug_reports_message = lambda: ''
 
-ytdl_format_options = {
-    'format': 'bestaudio/best',
-    'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
-    'restrictfilenames': True,
-    'noplaylist': True,
-    'nocheckcertificate': True,
-    'ignoreerrors': False,
-    'logtostderr': False,
-    'quiet': True,
-    'no_warnings': True,
-    'default_search': 'auto',
-    'source_address': '0.0.0.0' # bind to ipv4 since ipv6 addresses cause issues sometimes
-}
-
-ffmpeg_options = {
-    'options': '-vn'
-}
-
-ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
-#=============================================================================================
 
 @client.event 
 async def on_ready():
@@ -89,8 +65,13 @@ async def dc(ctx):
         case "botNotInChannel":
             await ctx.send("DogeBot not in this channel.")
         case "sameServerAndChannel":
-            await botVoiceClients[ctx.guild.id].disconnect()
+            await getVcCommandVcClient(ctx).disconnect()
             del botVoiceClients[ctx.guild.id]
+
+@client.command()
+async def play(ctx,phrase):
+    await playFromUrl(searchYoutube(phrase)['source'], getVcCommandVcClient(ctx))
+
 
 client.run(TOKEN)
 
