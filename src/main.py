@@ -31,7 +31,11 @@ async def on_message(msg_read):
  
 @client.command()
 async def e(ctx):
-    await ctx.send('***E***')
+    embedObj=discord.Embed(
+        title="E",
+        description="e",
+        color=discord.Color.blue())
+    await ctx.send(embed = embedObj)
 
 @client.command()
 async def off(ctx):
