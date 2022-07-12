@@ -1,19 +1,31 @@
 from helpers import *
 from discord.ext import commands
 from data import botVoiceClients
+import random
+from google_images_search import GoogleImagesSearch
 
 #client = discord.Client()
 client = commands.Bot(command_prefix='!')
 
-with open("key.txt",'r') as keyFile:
-    TOKEN = keyFile.readline()
+with open("key.txt") as keyFile:
+    fileContents = open("key.txt").readlines()
+    TOKEN = fileContents[0]
+    GOOGLEAPIKEY = fileContents[1]
+    GOOGLEENGINEID = fileContents[2]
 keyFile.close()
 
-
+searchPara = {
+    'num': 10,
+    'fileType': 'jpg|gif|png',
+    'imgType': 'photo'
+}
 
 @client.event 
 async def on_ready():
     print('DogeBot logged in.')
+    print(TOKEN)
+    print(GOOGLEAPIKEY)
+    print(GOOGLEENGINEID)
     botVoiceClients.clear()
     await getSusBotChannel(client).send("DogeBot Online.")
 
@@ -29,6 +41,17 @@ async def on_message(msg_read):
         return
     await client.process_commands(msg_read)
  
+@client.event
+async def on_command_error(ctx,error):
+    searchTerm = searchPara
+    searchTerm['q'] = ctx.invoked_with
+    gis = GoogleImagesSearch(GOOGLEAPIKEY, GOOGLEENGINEID)
+    gis.search(search_params=searchPara)
+    imgUrl = gis.results()[random.randint(0,9)].url
+    embedMsg = discord.Embed(title="Here is {}".format(ctx.invoked_with), color=discord.Color.blurple())
+    embedMsg.set_image(url=imgUrl)
+    await ctx.send(embed=embedMsg)
+
 @client.command()
 async def e(ctx):
     embedObj=discord.Embed(
