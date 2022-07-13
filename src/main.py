@@ -1,6 +1,7 @@
 from helpers import *
 from discord.ext import commands
 from data import botVoiceClients
+from data import songQueues
 import random
 from google_images_search import GoogleImagesSearch
 
@@ -23,11 +24,12 @@ searchPara = {
 @client.event 
 async def on_ready():
     print('DogeBot logged in.')
-    print(TOKEN)
-    print(GOOGLEAPIKEY)
-    print(GOOGLEENGINEID)
     botVoiceClients.clear()
-    await getSusBotChannel(client).send("DogeBot Online.")
+    songQueues.clear()
+    embedObj=discord.Embed(
+        title="DogeBot Online.",
+        color=discord.Color.green())
+    await getSusBotChannel(client).send(embed = embedObj)
 
 @client.event
 async def on_message(msg_read):
@@ -43,6 +45,8 @@ async def on_message(msg_read):
  
 @client.event
 async def on_command_error(ctx,error):
+    if not isinstance(error, discord.ext.commands.CommandNotFound):
+        return
     searchTerm = searchPara
     searchTerm['q'] = ctx.invoked_with
     gis = GoogleImagesSearch(GOOGLEAPIKEY, GOOGLEENGINEID)
@@ -56,14 +60,17 @@ async def on_command_error(ctx,error):
 async def e(ctx):
     embedObj=discord.Embed(
         title="E",
-        description="e",
         color=discord.Color.blue())
     await ctx.send(embed = embedObj)
 
 @client.command()
 async def off(ctx):
     if ctx.author.name == "Doge_god" and ctx.author.discriminator == "2925":
-        await ctx.send('DogeBot Offline.')
+        botVoiceClients.clear()
+        embedObj=discord.Embed(
+            title="DogeBot Offline.",
+            color=discord.Color.red())
+        await ctx.send(embed = embedObj)
         #disconnect all voice clients from all servers
         for vc in client.voice_clients:
             await vc.disconnect()
@@ -79,6 +86,9 @@ async def join(ctx):
         case "botNotInServer":
             newVcClient = await ctx.message.author.voice.channel.connect()
             botVoiceClients[ctx.guild.id] = newVcClient
+            songQueues[ctx.guild.id] = []
+            print("Joined, session ID: ")
+            print(newVcClient.session_id)
         case "botNotInChannel":
             await botVoiceClients[ctx.guild.id].move_to(ctx.author.voice.channel)
 
@@ -92,12 +102,28 @@ async def dc(ctx):
         case "botNotInChannel":
             await ctx.send("DogeBot not in this channel.")
         case "sameServerAndChannel":
-            await getVcCommandVcClient(ctx).disconnect()
+            await getVcClient(ctx).disconnect()
             del botVoiceClients[ctx.guild.id]
+            del songQueues[ctx.guild.id]
 
 @client.command()
 async def play(ctx,phrase):
-    await playFromUrl(searchYoutube(phrase)['source'], getVcCommandVcClient(ctx))
+    match checkVcCommand(ctx):
+        case "userNotInVc":
+            await ctx.send("Join voice channel for voice channel commands.")
+            return
+        case "botNotInServer":
+            await join(ctx)
+        case "botNotInChannel":
+            await join(ctx)
+        case "sameServerAndChannel":
+            pass
+
+    searchResult = searchYoutube(phrase)
+    await ctx.send("**#{}** Added to queue: *{}*".format(len(songQueues[ctx.guild.id]),searchResult['title']))
+    songQueues[ctx.guild.id].append(searchResult)
+    print(songQueues[ctx.guild.id])
+    tryBeginPlay(getVcClient(ctx))
 
 
 client.run(TOKEN)

@@ -1,4 +1,12 @@
 botVoiceClients = {}
+
+''' 
+songQueues[#server id] = [
+    {'source': #audio url, 'title': #song title},
+    {'source': #audio url, 'title': #song title},
+    ...
+]
+'''
 songQueues = {}
 
 ytdl_format_options = {
