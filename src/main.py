@@ -1,8 +1,10 @@
+from turtle import color
 from helpers import *
 from discord.ext import commands
 from data import botVoiceClients
 from data import songQueues
 import random
+import datetime
 from google_images_search import GoogleImagesSearch
 
 #client = discord.Client()
@@ -107,7 +109,7 @@ async def dc(ctx):
             del songQueues[ctx.guild.id]
 
 @client.command()
-async def play(ctx,phrase):
+async def play(ctx,*phrases):
     match checkVcCommand(ctx):
         case "userNotInVc":
             await ctx.send("Join voice channel for voice channel commands.")
@@ -118,13 +120,87 @@ async def play(ctx,phrase):
             await join(ctx)
         case "sameServerAndChannel":
             pass
-
-    searchResult = searchYoutube(phrase)
-    await ctx.send("**#{}** Added to queue: *{}*".format(len(songQueues[ctx.guild.id]),searchResult['title']))
+    searchTerm = ' '.join(phrases)
+    searchResult = searchYoutube(searchTerm)
+    embedObj=discord.Embed(title="__{}__".format(searchResult['title']),color=discord.Color.teal())
+    embedObj.set_author(name="Added to queue: ")
+    embedObj.add_field(name="Position",value="#{}".format(len(songQueues[ctx.guild.id])),inline=True)
+    embedObj.add_field(name="Duration",value=str(datetime.timedelta(seconds=int(searchResult['duration']))),inline=True)
+    embedObj.add_field(name="ETA"
+        ,value=str(datetime.timedelta(seconds=getEta(len(songQueues[ctx.guild.id]),ctx.guild.id))),inline=True)
+    await ctx.send(embed=embedObj)
     songQueues[ctx.guild.id].append(searchResult)
-    print(songQueues[ctx.guild.id])
     tryBeginPlay(getVcClient(ctx))
 
+@client.command(aliases=['q'])
+async def queue(ctx):
+    match checkVcCommand(ctx):
+        case "userNotInVc":
+            await ctx.send("Join voice channel for voice channel commands.")
+            return
+        case "botNotInServer":
+            await ctx.send("DogeBot not in vc in this server.")
+            return
+        case "botNotInChannel":
+            await ctx.send("DogeBot not in this channel.")
+            return
+        case "sameServerAndChannel":
+            pass
+    #if queue is empty simply print queue empty msg
+    if len(songQueues[ctx.guild.id]) == 0:
+        await ctx.send(embed=discord.Embed(title="Queue empty.",color=discord.Color.teal()))
+        return
+
+    embedObj=discord.Embed(title="Queue",color=discord.Color.teal())
+    cnt = 0
+    for song in songQueues[ctx.guild.id]:
+        embedObj.add_field(name= ("Currently playing:" if cnt == 0 else "#{}".format(cnt)) 
+            + "   ({})".format(str(datetime.timedelta(seconds=int(song['duration']))))
+            ,value=song['title'],inline=False)
+        cnt += 1
+    await ctx.send(embed=embedObj)
+
+@client.command()
+async def skip(ctx,tgtTrack=None):
+    match checkVcCommand(ctx):
+            case "userNotInVc":
+                await ctx.send("Join voice channel for voice channel commands.")
+                return
+            case "botNotInServer":
+                await ctx.send("DogeBot not in vc in this server.")
+                return
+            case "botNotInChannel":
+                await ctx.send("DogeBot not in this channel.")
+                return
+            case "sameServerAndChannel":
+                pass
+    if tgtTrack == None:
+        if len(songQueues[ctx.guild.id]) < 1:
+            await ctx.send(embed=discord.Embed(title="Queue empty.",color=discord.Color.teal()))
+            return
+        getVcClient(ctx).stop()
+        await ctx.send(embed=discord.Embed(title="Skipped.",color=discord.Color.teal()))
+        return
+    trackNum = int(tgtTrack)
+
+    #trying to skip last added song AND theres more than 1 song in the queue
+    if trackNum == -1 and len(songQueues[ctx.guild.id]) > 1:
+        embedObj=discord.Embed(title="Removed last song added:",color=discord.Color.teal())
+        embedObj.add_field(name="#{}".format(len(songQueues[ctx.guild.id])-1)
+            +"   ({})".format(str(datetime.timedelta(seconds=int(songQueues[ctx.guild.id][-1]['duration']))))
+            ,value=songQueues[ctx.guild.id][-1]['title'],inline=False)
+        await ctx.send(embed=embedObj)
+        songQueues[ctx.guild.id].pop(-1)
+    
+    elif trackNum in range(1, len(songQueues[ctx.guild.id])):
+        embedObj=discord.Embed(title="Removed:",color=discord.Color.teal())
+        embedObj.add_field(name="#{}".format(trackNum)
+            +"   ({})".format(str(datetime.timedelta(seconds=int(songQueues[ctx.guild.id][trackNum]['duration']))))
+            ,value=songQueues[ctx.guild.id][trackNum]['title'],inline=False)
+        await ctx.send(embed=embedObj)
+        songQueues[ctx.guild.id].pop(trackNum)
+    else:
+        await ctx.send(embed=discord.Embed(title="Invalid skip location.",color=discord.Color.red()))
 
 client.run(TOKEN)
 

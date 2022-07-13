@@ -52,36 +52,30 @@ def searchYoutube(searchPhrase):
             info = youtubeDlObj.extract_info(str(searchPhrase), download=False)['entries'][0]
         except Exception:
             info = youtubeDlObj.extract_info(str(searchPhrase), download=False)
-            return {'source': info['formats'][0]['url'], 'title': info['title']}
+            return {'source': info['formats'][0]['url'], 'title': info['title'], 'duration': info['duration']}
     return {'source': info['formats'][0]['url'], 'title': info['title'], 'duration': info['duration']}
-
+ 
 def playFromUrl(url, vcClient):
     vcClient.play(discord.FFmpegPCMAudio(url,**ffmpeg_options)
         ,after= lambda err=None: playNext(vcClient))
     print(str(discord.FFmpegPCMAudio(url,**ffmpeg_options)))
 
 def playNext(vcClient):
-    if len(songQueues[vcClient.guild.id]) == 1:
-        songQueues[vcClient.guild.id].pop(0)
+    songQueues[vcClient.guild.id].pop(0)
+    if len(songQueues[vcClient.guild.id]) == 0:
+        print("Queue empty")
+        return
     else:
-        songQueues[vcClient.guild.id].pop(0)
         playFromUrl(songQueues[vcClient.guild.id][0]['source'],vcClient)
 
 def tryBeginPlay(vcClient):
-    if len(songQueues[vcClient.guild.id]) == 1:
-        print("Try begin play:")
-        print(songQueues[vcClient.guild.id][0]['source'])
-        print(vcClient.session_id)
+    if len(songQueues[vcClient.guild.id]) == 1 :
         playFromUrl(songQueues[vcClient.guild.id][0]['source'],vcClient)
-    else:
-        print(len(songQueues[vcClient.guild.id]))
-        pass
 
-def test():
-    with youtube_dl.YoutubeDL(ytdl_format_options) as youtubeDlObj:
-        try:
-            return youtubeDlObj.extract_info('https://www.youtube.com/watch?v=dQw4w9WgXcQ&ab_channel=RickAstley'
-            , download=False)['formats'][0]['url']
-        except Exception as e:
-            print(e)
+def getEta(quePos,serverId):
+    tot = 0
+    for x in range(0, quePos):
+        tot += int(songQueues[serverId][x]['duration'])
+    return tot
+
 
