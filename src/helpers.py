@@ -55,9 +55,10 @@ def searchYoutube(searchPhrase):
             return {'source': info['formats'][0]['url'], 'title': info['title'], 'duration': info['duration']}
     return {'source': info['formats'][0]['url'], 'title': info['title'], 'duration': info['duration']}
  
-def playFromUrl(url, vcClient):
+def playFromUrl(url, vcClient, seekSec = 0):
+    ffmpeg_options['options'] = f'-vn -ss {seekSec}'
     vcClient.play(discord.FFmpegPCMAudio(url,**ffmpeg_options)
-        ,after= lambda err=None: playNext(vcClient))
+        ,after= lambda err: print('Player error: %s' % err) if err else playNext(vcClient))
     print(str(discord.FFmpegPCMAudio(url,**ffmpeg_options)))
 
 def playNext(vcClient):

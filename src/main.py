@@ -3,19 +3,17 @@ from helpers import *
 from discord.ext import commands
 from data import botVoiceClients
 from data import songQueues
-import random
 import datetime
 from google_images_search import GoogleImagesSearch
+import os
+from dotenv import load_dotenv
 
-#client = discord.Client()
-client = commands.Bot(command_prefix='!')
+intents = discord.Intents.default()
+intents.message_content = True
+client = commands.Bot(command_prefix='!', intents=intents)
 
-with open("key.txt") as keyFile:
-    fileContents = open("key.txt").readlines()
-    TOKEN = fileContents[0]
-    GOOGLEAPIKEY = fileContents[1]
-    GOOGLEENGINEID = fileContents[2]
-keyFile.close()
+load_dotenv()
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
 searchPara = {
     'num': 10,
@@ -49,6 +47,8 @@ async def on_message(msg_read):
 async def on_command_error(ctx,error):
     if not isinstance(error, discord.ext.commands.CommandNotFound):
         return
+    await ctx.send(embed=discord.Embed(title="Invalid command.",color=discord.Color.red()))
+    '''
     searchTerm = searchPara
     searchTerm['q'] = ctx.invoked_with
     gis = GoogleImagesSearch(GOOGLEAPIKEY, GOOGLEENGINEID)
@@ -57,6 +57,7 @@ async def on_command_error(ctx,error):
     embedMsg = discord.Embed(title="Here is {}".format(ctx.invoked_with), color=discord.Color.blurple())
     embedMsg.set_image(url=imgUrl)
     await ctx.send(embed=embedMsg)
+    '''
 
 @client.command()
 async def e(ctx):
@@ -86,10 +87,12 @@ async def join(ctx):
         case "userNotInVc":
             await ctx.send("Join voice channel for voice channel commands.")
         case "botNotInServer":
+            print("JOINING")
             newVcClient = await ctx.message.author.voice.channel.connect()
+            print("joined")
             botVoiceClients[ctx.guild.id] = newVcClient
             songQueues[ctx.guild.id] = []
-            print("Joined, session ID: ")
+            print("Joined vc, session ID: ")
             print(newVcClient.session_id)
         case "botNotInChannel":
             await botVoiceClients[ctx.guild.id].move_to(ctx.author.voice.channel)
@@ -202,5 +205,5 @@ async def skip(ctx,tgtTrack=None):
     else:
         await ctx.send(embed=discord.Embed(title="Invalid skip location.",color=discord.Color.red()))
 
-client.run(TOKEN)
+client.run(DISCORD_TOKEN)
 
