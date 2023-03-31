@@ -3,6 +3,7 @@ from data import ytdl_format_options
 from data import ffmpeg_options
 from data import songQueues
 import youtube_dl
+import yt_dlp
 import asyncio
 import discord
 from youtube_dl import YoutubeDL
@@ -47,13 +48,18 @@ def checkVcCommand(ctx):
     return "sameServerAndChannel"
 
 def searchYoutube(searchPhrase):
-    with youtube_dl.YoutubeDL(ytdl_format_options) as youtubeDlObj:
+
+    with yt_dlp.YoutubeDL(ytdl_format_options) as youtubeDlObj:
+
+        
         try:
             info = youtubeDlObj.extract_info(str(searchPhrase), download=False)['entries'][0]
         except Exception:
             info = youtubeDlObj.extract_info(str(searchPhrase), download=False)
-            return {'source': info['formats'][0]['url'], 'title': info['title'], 'duration': info['duration']}
-    return {'source': info['formats'][0]['url'], 'title': info['title'], 'duration': info['duration']}
+            print(info)
+            return {'source': info['formats'][7]['url'], 'title': info['title'], 'duration': info['duration']}
+    print(info)
+    return {'source': info['formats'][7]['url'], 'title': info['title'], 'duration': info['duration']}
  
 def playFromUrl(url, vcClient, seekSec = 0):
     ffmpeg_options['options'] = f'-vn -ss {seekSec}'
